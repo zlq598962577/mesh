@@ -9,6 +9,7 @@ package app
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"mesh/internal/adapters"
@@ -53,9 +54,16 @@ func newAdapterEngine(adapter string, reg *registry.Registry, dataDir string) (c
 	switch adapter {
 	case codex.AdapterID:
 		// Codex CLI 通道（2026-11-14 实测打通）：exec 走 ~/.codex/config.toml
-		// 的 magpie 网关。工作区指向 bot 私有目录（exec 的沙箱与 workdir 语义）。
+		// 的 magpie 网关。工作区指向 bot 私有目录（exec 的沙箱与 workdir 语义），
+		// 目录必须先建好——CLI 子进程的 chdir 不接受不存在的目录。
+		ws := botWorkspaceDir(dataDir, codex.AdapterID)
+		if ws != "" {
+			if err := os.MkdirAll(ws, 0o755); err != nil {
+				return nil, fmt.Errorf("app: 创建 codex 工作区 %s 失败: %w", ws, err)
+			}
+		}
 		return codex.New(adapters.CLISpec{
-			WorkDir: botWorkspaceDir(dataDir, codex.AdapterID),
+			WorkDir: ws,
 		}, reg)
 	case doubao.AdapterID:
 		return doubao.New(reg)

@@ -296,14 +296,19 @@ func (d *dispatcher) ensureSession(ctx context.Context, botID string) (contract.
 }
 
 // sessionClosed 判断引擎会话是否已终结（final 已发 / Close 已调）。
-// 引擎返回的会话都经 mux 包装，内层才是适配器的 SessionHandle。
+//
+// 派发器经 pickEngine 拿到的是裸引擎，Open 返回的是 *adapters.SessionHandle
+// 本身（不经 mux 包装）——之前的类型断言只认 *muxSession，永远失败，导致
+// 已销毁的旧会话被当成"活着"复用，Send 报"会话不存在"（2026-11-14 用户
+// 实测事故第二根因）。两种形态都认，杜绝再犯。
 func sessionClosed(s contract.Session) bool {
-	ms, ok := s.(*muxSession)
-	if !ok {
-		return false
-	}
-	if sh, ok := ms.inner.(*adapters.SessionHandle); ok {
+	switch sh := s.(type) {
+	case *adapters.SessionHandle:
 		return sh.Closed()
+	case *muxSession:
+		if inner, ok := sh.inner.(*adapters.SessionHandle); ok {
+			return inner.Closed()
+		}
 	}
 	return false
 }
