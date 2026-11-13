@@ -1,0 +1,52 @@
+{
+  "id": "doubao",
+  "name": "豆包",
+  "description": "豆包桌面客户端（Chromium）。必须驱动桌面客户端本身，不得切换到网页版或 API。",
+  "tier": 1,
+
+  "detect": {
+    "exe_paths": [
+      "E:\\Doubao\\app\\Doubao.exe",
+      "E:\\Doubao\\Doubao.exe",
+      "%LOCALAPPDATA%\\Doubao\\app\\Doubao.exe",
+      "%LOCALAPPDATA%\\Doubao\\Doubao.exe",
+      "C:\\Program Files\\Doubao\\app\\Doubao.exe",
+      "C:\\Program Files (x86)\\Doubao\\app\\Doubao.exe"
+    ],
+    "process_names": ["Doubao.exe"],
+    "version_path": "E:\\Doubao\\Doubao.exe",
+    "notes": "豆包是『启动器 + 主程序』两份 exe 的结构，这一点与方案假设的『一个客户端一个 exe』不同，所以探测路径与版本来源必须分开写。 实测（probe 只读核对）：主程序 E:\\Doubao\\app\\Doubao.exe 的 ProductVersion 是 147.0.7727.149，ProductName 是 Doubao —— 这是 Chromium 的版本号，不是豆包自己的版本；真正的应用版本 2.36.8 在根目录启动器 E:\\Doubao\\Doubao.exe 上，它的 ProductName 是 Doubao Launcher。 因此 version_path 指向启动器：若按主程序读版本，会把 Chromium 版本当应用版本报给用户，是明确的错误信息。 exe_paths 里主程序排前面，因为『装了没装』应当以主程序为准（启动器可能被用户单独保留而主程序已被覆盖安装替换）。 运行时通常有 8 个 Doubao.exe 进程，全部同名，因此不能用进程名区分主程序与启动器，只能靠路径。"
+  },
+
+  "launch": {
+    "exe_path": "E:\\Doubao\\app\\Doubao.exe",
+    "window_wait_ms": 30000
+  },
+
+  "output": {
+    "mode": "clipboard",
+    "completion": "unknown_only",
+    "notes": "实测：主窗口类 Chrome_WidgetWin_1，标题形如 '电脑蓝屏原因分析 - 豆包'；UIA 深度 6 走查只有 Window/Pane/TitleBar 三类节点，渲染子树为空，SPI_GETSCREENREADER 为 false。因此输出只能靠剪贴板。 completion=unknown_only：无退出码可用（常驻），无可核实完成标志。"
+  },
+
+  "resume": {
+    "mode": "none"
+  },
+
+  "approval": {
+    "bridged": false,
+    "notes": "无 UIA 控件可定位审批按钮，点击结果无法核实。按 §9.3 透传给用户手动处理。"
+  },
+
+  "capabilities": {
+    "send": true,
+    "stream_output": false,
+    "cancel": true,
+    "cancel_verified": false,
+    "approval_bridge": false,
+    "file_transfer": false,
+    "native_session_id": false,
+    "read_only_review": false,
+    "health_check": true
+  }
+}

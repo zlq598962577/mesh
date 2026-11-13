@@ -1,0 +1,35 @@
+# ===== 凭据与本地数据（绝不入库）=====
+mesh-data/
+mesh-data-test/
+data/
+credential
+web-token
+*.db
+*.db-wal
+*.db-shm
+dsh-headless-patch.yml
+**/dsh-headless-patch.yml
+
+# ===== 构建产物 =====
+*.exe
+*.test
+dist/
+
+# ===== Go 工具链缓存（工作区内）=====
+.go/
+.gocache/
+.gotmp/
+
+# ===== 临时与日志 =====
+debug.log
+*.log
+*.tmp
+write-probe.tmp
+
+# ===== 根目录遗留的临时探测模块（早期工具链探测用）=====
+/go.mod
+/go.sum
+
+# ===== 编辑器 =====
+.vscode/
+.idea/

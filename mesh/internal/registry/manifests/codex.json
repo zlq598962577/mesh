@@ -1,0 +1,51 @@
+{
+  "id": "codex",
+  "name": "Codex",
+  "description": "OpenAI Codex CLI（@openai/codex 0.169.0，npm 全局安装，2026-11-14 实测）。非交互模式 codex exec 走 ~/.codex/config.toml 的 magpie 网关，回复直达 stdout。桌面 MSIX 客户端的注入通道已实测降级为备用（无 UIA 控件、发送不可核实、专用会话隔离不可实现）。",
+  "tier": 1,
+
+  "detect": {
+    "exe_paths": [
+      "%APPDATA%\\npm\\codex.cmd",
+      "%APPDATA%\\npm\\codex",
+      "C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.1106.6628.0_x64__2p2nqsd0c76g0\\app\\ChatGPT.exe"
+    ],
+    "process_names": [],
+    "exclude_paths": ["F:\\AIWORKSPACE\\CodexChinese\\"],
+    "version_path": "%APPDATA%\\npm\\codex.cmd",
+    "version_from": "exe_product",
+    "notes": "CLI 时代探测口径：主探测对象是 npm 的 codex.cmd（CLI 通道的启动器）；MSIX ChatGPT.exe 仅作桌面客户端存在性记录，不再是通道目标。version_from=exe_product 对 .cmd 取不到版本资源，探测层如实报版本未知——真实版本以 codex --version 为准（实测 0.169.0）。CodexChinese 目录（F:\\AIWORKSPACE\\CodexChinese\\）必须留在 exclude_paths：它的安装脚本会注册管理员计划任务，命中即整条判不可用。"
+  },
+
+  "launch": {
+    "exe_path": "%APPDATA%\\npm\\codex.cmd",
+    "args": ["exec", "--skip-git-repo-check"]
+  },
+
+  "output": {
+    "mode": "stdout",
+    "completion": "success_signal",
+    "success_signal": "cli-completed：codex exec 子进程正常退出（exit=0）且 stdout 非空。进程生命周期即任务生命周期，退出本身是可靠的完成信号；退出码不单独信任，必须与 stdout 非空同时满足。",
+    "notes": "实测（2026-11-14）：codex exec --skip-git-repo-check \"只回复四个字：测试成功\" → 21.8s，exit=0，provider=magpie（复用 ~/.codex/config.toml，model_provider=magpie）。stdout 结构：banner（OpenAI Codex v/--------/元信息）→ user 回显 → 思考段 → codex 回答段 → tokens used 汇总 → 最终消息。适配器 StreamFilter 跳过 banner 与汇总区，ExtractAnswer 取 tokens used 之后的最终消息。approval=never：exec 模式不交互审批，客户端自行拒绝（§9.3 不桥接）。sandbox 默认 workspace-write。"
+  },
+
+  "resume": {
+    "mode": "none"
+  },
+
+  "approval": {
+    "bridged": false
+  },
+
+  "capabilities": {
+    "send": true,
+    "stream_output": true,
+    "cancel": true,
+    "cancel_verified": true,
+    "approval_bridge": false,
+    "file_transfer": false,
+    "native_session_id": false,
+    "read_only_review": false,
+    "health_check": true
+  }
+}

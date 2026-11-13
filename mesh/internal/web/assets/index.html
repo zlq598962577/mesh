@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- 不向任何第三方泄漏来源页；本机服务不需要 referrer -->
+<meta name="referrer" content="no-referrer">
+<title>mesh · 单聊天框</title>
+<link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">mesh</div>
+    <div class="conn" id="conn" data-state="connecting">
+      <span class="dot" aria-hidden="true"></span>
+      <span id="conn-text">连接中…</span>
+    </div>
+  </header>
+
+  <!--
+    当前 Work 条：常驻，永远可见（方案 §5.4）。
+    即使没有进行中的委托也保留这一条，避免用户误以为"没在跑"就等于"没在花钱"。
+  -->
+  <section class="workbar" id="workbar" aria-label="当前委托">
+    <div class="workbar-main">
+      <div class="work-goal" id="work-goal">尚未有进行中的委托</div>
+      <div class="work-meta">
+        <span class="chip chip-state" id="work-state" data-state="">—</span>
+        <span class="meta-item">
+          执行 <b id="work-executor">未指定</b><span class="ver" id="work-executor-ver"></span>
+        </span>
+        <span class="meta-item">
+          审查 <b id="work-reviewer">未指定</b><span class="ver" id="work-reviewer-ver"></span>
+        </span>
+        <span class="meta-item meta-dim" id="work-rounds"></span>
+      </div>
+    </div>
+    <div class="workbar-flags">
+      <!-- 三类"未知"之一：停止未确认。见 app.js renderStopFlag() -->
+      <span class="flag flag-stop" id="flag-stop" hidden></span>
+      <!-- 三类"未知"之一：能力受限摘要。明细见右侧 cap-list -->
+      <span class="flag flag-cap" id="flag-cap" hidden></span>
+    </div>
+  </section>
+
+  <main class="layout">
+    <section class="col-main">
+
+      <!-- 待决策事项置顶：暂停 / 继续 / 停止 / 换人 / 授权 -->
+      <section class="decisions" id="decisions" aria-label="待决策">
+        <div class="decision-controls">
+          <span class="decision-controls-label">控制</span>
+          <button type="button" data-action="pause">暂停</button>
+          <button type="button" data-action="resume">继续</button>
+          <button type="button" data-action="stop">停止</button>
+          <button type="button" data-action="replace">换人</button>
+          <span class="decision-controls-msg" id="control-msg" role="status"></span>
+        </div>
+        <div id="decision-block" hidden>
+          <h2>待决策 <span class="count" id="decisions-count"></span></h2>
+          <ul class="decision-list" id="decision-list"></ul>
+        </div>
+      </section>
+
+      <!-- 聊天消息流：每条标作者与版本 -->
+      <section class="chat">
+        <div class="messages" id="messages" role="log" aria-live="polite" aria-relevant="additions"></div>
+      </section>
+
+      <!-- 输入框：任何时候都可用，永不禁用 -->
+      <form class="composer" id="composer" autocomplete="off">
+        <div class="composer-roles">
+          <label class="role-field">执行
+            <select id="sel-executor"><option value="">由 agent 建议</option></select>
+          </label>
+          <label class="role-field">审查
+            <select id="sel-reviewer">
+              <option value="">由 agent 建议</option>
+              <option value="__none__">不审查（由我自己看）</option>
+            </select>
+          </label>
+          <span class="hint">界面选择与聊天里说"让 A 做、B 审"写入同一份分工记录，按版本号排序。</span>
+        </div>
+        <div class="composer-input">
+          <textarea id="input" rows="3"
+            placeholder="说清楚要办的事。@某个 bot 只是咨询，不会改分工。Ctrl+Enter 发送，Shift+Ctrl+Enter 换行"></textarea>
+          <button type="submit" id="btn-send">发送</button>
+        </div>
+        <div class="composer-status" id="composer-status" role="status"></div>
+      </form>
+    </section>
+
+    <aside class="col-side">
+
+      <!-- 每 bot 一行状态 -->
+      <section class="panel">
+        <h2>Bot 状态</h2>
+        <ul class="bot-list" id="bot-list"></ul>
+      </section>
+
+      <!--
+        成本面板（方案 §9.6，P0 就要有）。
+        注意：面板永远渲染，不会因为"费用未知"而隐藏。
+        未知在 #cost-unknown 里如实显示，金额位置显示"未知"而不是 0。
+      -->
+      <section class="panel" id="cost-panel">
+        <h2>成本</h2>
+        <div class="cost-tabs" id="cost-tabs" role="tablist">
+          <button type="button" data-dim="bot" class="active" role="tab" aria-selected="true">按 bot</button>
+          <button type="button" data-dim="room" role="tab" aria-selected="false">按房间</button>
+          <button type="button" data-dim="day" role="tab" aria-selected="false">按天</button>
+        </div>
+        <div class="unknown-banner" id="cost-unknown" hidden></div>
+        <dl class="cost-totals" id="cost-totals"></dl>
+        <!-- 明细属于"中间层级"，默认折叠，避免成本面板一上来就压满一屏 -->
+        <details class="cost-details" id="cost-details">
+          <summary>按当前维度看明细</summary>
+          <table class="cost-table">
+            <thead>
+              <tr><th>对象</th><th>调用</th><th>tokens 入 / 出</th><th>金额</th></tr>
+            </thead>
+            <tbody id="cost-body"></tbody>
+          </table>
+        </details>
+        <h3>客户端限额 / 用量</h3>
+        <ul class="limits" id="limits"></ul>
+      </section>
+
+      <!-- 三类"未知"之一：能力受限的具体限制 -->
+      <section class="panel" id="cap-panel">
+        <h2>能力受限</h2>
+        <ul class="cap-list" id="cap-list"></ul>
+      </section>
+
+      <section class="panel" id="notice-panel" hidden>
+        <h2>提示</h2>
+        <ul class="notice-list" id="notice-list"></ul>
+      </section>
+
+    </aside>
+  </main>
+</div>
+
+<noscript>
+  <p class="noscript">本页面需要 JavaScript 才能接收实时事件。请允许本页运行脚本。</p>
+</noscript>
+
+<template id="tpl-bot">
+  <li class="bot" data-status="idle">
+    <div class="bot-head">
+      <span class="bot-name"></span>
+      <span class="bot-adapter"></span>
+      <span class="bot-status"></span>
+    </div>
+    <div class="bot-work"></div>
+    <div class="bot-note"></div>
+    <!-- 每个 bot 的具体能力限制属于中间层级，折叠起来 -->
+    <details class="bot-caps-wrap">
+      <summary>能力受限</summary>
+      <ul class="bot-caps"></ul>
+    </details>
+  </li>
+</template>
+
+<template id="tpl-decision">
+  <li class="decision">
+    <div class="decision-head">
+      <span class="decision-kind"></span>
+      <span class="decision-title"></span>
+    </div>
+    <p class="decision-detail"></p>
+    <div class="decision-actions"></div>
+  </li>
+</template>
+
+<template id="tpl-msg">
+  <article class="msg">
+    <header class="msg-head">
+      <span class="msg-author"></span>
+      <span class="msg-kind"></span>
+      <span class="msg-time"></span>
+    </header>
+    <div class="msg-body"></div>
+    <footer class="msg-foot"></footer>
+  </article>
+</template>
+
+<script src="/assets/app.js"></script>
+</body>
+</html>

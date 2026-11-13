@@ -1,0 +1,49 @@
+{
+  "id": "trae",
+  "name": "Trae CN",
+  "description": "Trae CN 编辑器。要驱动的是它内置的 AI 智能体面板，不是编辑器本身。",
+  "tier": 1,
+
+  "detect": {
+    "exe_paths": [
+      "F:\\Trae CN\\Trae CN.exe",
+      "C:\\Program Files\\Trae CN\\Trae CN.exe",
+      "C:\\Program Files (x86)\\Trae CN\\Trae CN.exe"
+    ],
+    "process_names": ["Trae CN.exe"],
+    "version_from": "exe_product",
+    "notes": "实测存在：F:\\Trae CN\\Trae CN.exe（ProductVersion 3.4.18，FileVersion 2.3.102387），运行时通常有 2 个进程，另有启动器 F:\\Trae CN\\bin\\trae-cn.cmd。 重要：实测枚举全部有标题的窗口，没有任何一个标题含 'Trae'——主窗口标题是当前项目名，智能体面板窗口标题是 'Agent'。因此 window_title 不能作为探测条件（写了必然漏判），探测只靠 process_names + exe 路径。 卸载器必须挡在门外：同目录下还有 unins000.exe（Inno Setup 卸载器），它是独立可执行文件、有版本资源、也能被启动，但一旦被探测或 launch 选中就会直接卸载客户端。本 manifest 的 exe_paths 与 process_names 都只写 Trae CN.exe 这一个具体名字，没有使用任何能匹配到 unins000.exe 的通配，launch.exe_path 同理。 version_from=exe_product：ProductVersion 3.4.18 才是应用版本，FileVersion 2.3.102387 是内嵌 Electron 的版本号；默认的 FileVersion 优先会把 Electron 版本当 Trae 版本报出去。"
+  },
+
+  "launch": {
+    "exe_path": "F:\\Trae CN\\Trae CN.exe",
+    "window_wait_ms": 45000
+  },
+
+  "output": {
+    "mode": "clipboard",
+    "completion": "unknown_only",
+    "notes": "同族 Chromium（窗口类 Chrome_WidgetWin_1），与已实测的 DSH/豆包/ChatGPT 一致；那三个客户端的 UIA 渲染子树实测全空，因此这里按同一族推断也不可达，属于待实测假设而非实测结论。 输出只能走剪贴板。 completion=unknown_only：编辑器里没有可核实的'本轮回答结束'标志，退出码不可用（编辑器常驻不退出），且平台不得读客户端内部数据库冒充接口。"
+  },
+
+  "resume": {
+    "mode": "none"
+  },
+
+  "approval": {
+    "bridged": false,
+    "notes": "智能体面板的确认/拒绝按钮无 UIA 控件可定位，点击结果无法核实。按 §9.3 透传给用户手动点。"
+  },
+
+  "capabilities": {
+    "send": true,
+    "stream_output": false,
+    "cancel": true,
+    "cancel_verified": false,
+    "approval_bridge": false,
+    "file_transfer": false,
+    "native_session_id": false,
+    "read_only_review": false,
+    "health_check": true
+  }
+}

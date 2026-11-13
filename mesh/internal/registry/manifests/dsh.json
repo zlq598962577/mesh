@@ -1,0 +1,50 @@
+{
+  "id": "dsh",
+  "name": "DeepSeek Harness",
+  "description": "DeepSeek Harness 本机服务（无 GUI 主窗口形态，界面是浏览器里的 Web GUI）。P0a 实测：进程运行但没有任何可见顶层窗口，桌面注入通道不适用；官方程序化入口是 CLI（dsh.cmd headless，一次性委托、结果走 stdout、进程退出即完成）。通道据此实测为 CLI。",
+  "tier": 1,
+
+  "detect": {
+    "exe_paths": [
+      "F:\\deepseek\\DeepSeek Harness.exe",
+      "C:\\Program Files\\DeepSeek Harness\\DeepSeek Harness.exe",
+      "C:\\Program Files (x86)\\DeepSeek Harness\\DeepSeek Harness.exe"
+    ],
+    "process_names": ["DeepSeek Harness.exe"],
+    "version_from": "exe_product",
+    "notes": "实测存在：F:\\deepseek\\DeepSeek Harness.exe，CLI 启动器 F:\\deepseek\\resources\\runtime\\cli\\bin\\dsh.cmd。version_from=exe_product：ProductVersion 0.2.2.0 与 FileVersion 0.2.2-rc.3（卸载登记项 DisplayVersion，实测 2026-11）不一致是事实；只读 ProductVersion。桌面通道实测结论（2026-11-14 mesh-probe）：3 个客户端进程全部无可见顶层窗口，启动 GUI 后同样无窗口——rc.3 的形态是无窗口本机服务，桌面注入从根上不适用，因此通道为 CLI。"
+  },
+
+  "launch": {
+    "exe_path": "F:\\deepseek\\resources\\runtime\\cli\\bin\\dsh.cmd",
+    "args": ["headless", "--patch", "${patch}"]
+  },
+
+  "output": {
+    "mode": "stdout",
+    "completion": "success_signal",
+    "success_signal": "headless-completed：headless 子进程正常退出（exit=0）且 stdout 非空。CLI 通道下进程生命周期即任务生命周期，进程退出本身是可靠的完成信号——这与桌面客户端的常驻进程本质不同；退出码仍不可单独信任（DSH 实测失败也可能 exit 0），因此必须同时要求 stdout 非空。",
+    "notes": "launch 的 ${patch} 占位符由适配器替换为实际 patch 文件路径（LLM provider 配置 overlay，默认内置 magpie 网关模板，落在 data_dir 下可手工修改）。DSH_HOME 环境变量由适配器注入（默认 %USERPROFILE%\\.dsh，用户凭据复用）。实测（2026-11-14）：dsh.cmd headless --patch <magpie overlay> \"只回复四个字：测试成功\" → stdout「测试成功」，exit=0，9.4s。stdout 逐行流式转 output 事件；进程退出后按 exit/stdout 给 final。"
+  },
+
+  "resume": {
+    "mode": "none"
+  },
+
+  "approval": {
+    "bridged": false,
+    "notes": "headless 通道没有交互式审批界面；CLI 任务内的工具审批由 DSH 自身策略决定（headless 默认拒绝交互审批）。平台不代答。"
+  },
+
+  "capabilities": {
+    "send": true,
+    "stream_output": true,
+    "cancel": true,
+    "cancel_verified": true,
+    "approval_bridge": false,
+    "file_transfer": false,
+    "native_session_id": false,
+    "read_only_review": false,
+    "health_check": true
+  }
+}
