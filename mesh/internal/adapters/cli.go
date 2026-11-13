@@ -149,7 +149,9 @@ func (e *CLIEngine) Send(ctx context.Context, s contract.Session, msg contract.M
 	// 派发层据此在下一轮重建。放在这里：早退路径没有发出事件，会话仍可复用。
 	defer e.Close(s)
 
-	cmd := exec.Command(e.spec.CmdPath, append(append([]string{}, e.spec.ArgPrefix...), msg.Text)...)
+	// CommandContext：进程退出（ctx 取消）时终止子进程，Send 不悬挂；
+	// 用户主动停止走 Cancel（taskkill），两条路径互不影响。
+	cmd := exec.CommandContext(ctx, e.spec.CmdPath, append(append([]string{}, e.spec.ArgPrefix...), msg.Text)...)
 	if len(e.spec.EnvExtra) > 0 {
 		cmd.Env = append(os.Environ(), e.spec.EnvExtra...)
 	}

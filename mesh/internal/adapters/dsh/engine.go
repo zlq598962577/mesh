@@ -1,4 +1,4 @@
-//go:build windows
+﻿//go:build windows
 
 // Package dsh 是 DeepSeek Harness 的 CLI 通道适配器。
 //
@@ -14,7 +14,6 @@
 package dsh
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -121,4 +120,3 @@ func chainCheck(a, b func() error) func() error {
 	}
 }
 
-var _ = errors.New // 保留：子包错误路径未来扩展用
